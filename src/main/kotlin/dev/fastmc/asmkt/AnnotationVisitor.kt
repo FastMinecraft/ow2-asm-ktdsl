@@ -1,47 +1,47 @@
 package dev.fastmc.asmkt
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.AnnotationNode
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap as O2OHashMap
 
-typealias AnnotationValueVisit<T> = (name: String, value: T) -> Unit
-typealias AnnotationArrayVisit<T> = (name: String, values: List<T>) -> Unit
-typealias AnnotationEnumVisit = (name: String, descriptor: String, value: String) -> Unit
+typealias AnnotationValueVisit<T> = (value: T) -> Unit
+typealias AnnotationArrayVisit<T> = (values: List<T>) -> Unit
+typealias AnnotationEnumVisit = (value: String) -> Unit
 
 class AnnotationVisitorBuilder {
-    private val visits = Object2ObjectOpenHashMap<Class<*>, AnnotationValueVisit<Any>>()
-    private val arrayVisits = Object2ObjectOpenHashMap<Class<*>, AnnotationArrayVisit<Any>>()
-    private val enumVisits = ObjectArrayList<AnnotationEnumVisit>()
+    private val valueVisits = O2OHashMap<Class<*>, O2OHashMap<String, AnnotationValueVisit<Any>>>()
+    private val arrayVisits = O2OHashMap<Class<*>, O2OHashMap<String, AnnotationArrayVisit<Any>>>()
+    private val enumVisits = O2OHashMap<String, O2OHashMap<String, AnnotationEnumVisit>>()
 
-    fun <T> visit(type: Class<T>, block: AnnotationValueVisit<T>) {
+    fun <T> visitValue(type: Class<T>, name: String, block: AnnotationValueVisit<T>) {
         @Suppress("UNCHECKED_CAST")
-        require(visits.put(type, block as AnnotationValueVisit<Any>) == null) { "Already visited $type" }
+        require(valueVisits.getOrPut(type, ::O2OHashMap).put(name, block as AnnotationValueVisit<Any>) == null) { "Already visited $name:$type" }
     }
 
-    inline fun <reified T> visit(noinline block: AnnotationValueVisit<T>) {
-        visit(T::class.java, block)
+    inline fun <reified T> visitValue(name: String, noinline block: AnnotationValueVisit<T>) {
+        visitValue(T::class.java, name, block)
     }
 
-    fun <T> visitArray(type: Class<T>, block: AnnotationArrayVisit<T>) {
+    fun <T> visitArray(type: Class<T>, name: String, block: AnnotationArrayVisit<T>) {
         @Suppress("UNCHECKED_CAST")
-        require(arrayVisits.put(type, block as AnnotationArrayVisit<Any>) == null) { "Already visited array $type" }
+        require(arrayVisits.getOrPut(type, ::O2OHashMap).put(name, block as AnnotationArrayVisit<Any>) == null) { "Already visited array $name:$type" }
     }
 
-    inline fun <reified T> visitArray(noinline block: AnnotationArrayVisit<T>) {
-        visitArray(T::class.java, block)
+    inline fun <reified T> visitArray(name: String, noinline block: AnnotationArrayVisit<T>) {
+        visitArray(T::class.java, name, block)
     }
 
-    fun visitEnum(block: AnnotationEnumVisit) {
-        enumVisits.add(block)
+    fun visitEnum(name: String, desc: String, block: AnnotationEnumVisit) {
+        require(enumVisits.getOrPut(name, ::O2OHashMap).put(desc, block) == null) { "Already visited enum $name:$desc" }
     }
 
     fun build(): AnnotationVisitor {
         return object : AnnotationVisitor(Opcodes.ASM9) {
             override fun visit(name: String, value: Any?) {
                 if (value != null) {
-                    visits[value::class.java]?.invoke(name, value)
+                    valueVisits[value::class.java]?.get(name)?.invoke(value)
                 }
             }
 
@@ -61,13 +61,13 @@ class AnnotationVisitorBuilder {
                     }
 
                     override fun visitEnd() {
-                        values?.let { arrayVisits[type!!]?.invoke(name, it) }
+                        values?.let { arrayVisits[type!!]?.get(name)?.invoke(it) }
                     }
                 }
             }
 
             override fun visitEnum(name: String, descriptor: String, value: String) {
-                enumVisits.forEach { it.invoke(name, descriptor, value) }
+                enumVisits[name]?.get(descriptor)?.invoke(value)
             }
         }
     }
