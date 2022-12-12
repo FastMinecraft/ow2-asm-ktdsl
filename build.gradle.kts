@@ -10,6 +10,7 @@ repositories {
 }
 
 dependencies {
+    implementation("it.unimi.dsi:fastutil:8.5.9")
     implementation("org.ow2.asm:asm-commons:9.4")
     implementation("org.ow2.asm:asm-tree:9.4")
 }
