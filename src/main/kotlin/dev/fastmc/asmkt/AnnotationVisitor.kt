@@ -9,11 +9,13 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap as O2OHashMap
 typealias AnnotationValueVisit<T> = (value: T) -> Unit
 typealias AnnotationArrayVisit<T> = (values: List<T>) -> Unit
 typealias AnnotationEnumVisit = (value: String) -> Unit
+typealias AnnotationAnnotationVisit = AnnotationVisitorBuilder.() -> Unit
 
 class AnnotationVisitorBuilder {
     private val valueVisits = O2OHashMap<Class<*>, O2OHashMap<String, AnnotationValueVisit<Any>>>()
     private val arrayVisits = O2OHashMap<Class<*>, O2OHashMap<String, AnnotationArrayVisit<Any>>>()
     private val enumVisits = O2OHashMap<String, O2OHashMap<String, AnnotationEnumVisit>>()
+    private val annotationVisits = O2OHashMap<String, O2OHashMap<String, AnnotationAnnotationVisit>>()
 
     fun <T> visitValue(type: Class<T>, name: String, block: AnnotationValueVisit<T>) {
         @Suppress("UNCHECKED_CAST")
@@ -35,6 +37,10 @@ class AnnotationVisitorBuilder {
 
     fun visitEnum(name: String, desc: String, block: AnnotationEnumVisit) {
         require(enumVisits.getOrPut(name, ::O2OHashMap).put(desc, block) == null) { "Already visited enum $name:$desc" }
+    }
+
+    fun visitAnnotation(name: String, desc: String, block: AnnotationAnnotationVisit) {
+        require(annotationVisits.getOrPut(name, ::O2OHashMap).put(desc, block) == null) { "Already visited annotation $name:$desc" }
     }
 
     fun build(): AnnotationVisitor {
@@ -68,6 +74,10 @@ class AnnotationVisitorBuilder {
 
             override fun visitEnum(name: String, descriptor: String, value: String) {
                 enumVisits[name]?.get(descriptor)?.invoke(value)
+            }
+
+            override fun visitAnnotation(name: String, descriptor: String): AnnotationVisitor? {
+                return annotationVisits[name]?.get(descriptor)?.let { AnnotationVisitorBuilder().apply(it).build() }
             }
         }
     }
