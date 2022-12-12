@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "1.7.22"
+    `maven-publish`
 }
 
 group = "dev.fastmc"
@@ -13,6 +14,10 @@ dependencies {
     implementation("it.unimi.dsi:fastutil:8.5.9")
     implementation("org.ow2.asm:asm-commons:9.4")
     implementation("org.ow2.asm:asm-tree:9.4")
+}
+
+java {
+    withSourcesJar()
 }
 
 kotlin {
@@ -34,6 +39,14 @@ tasks {
     compileKotlin {
         kotlinOptions {
             jvmTarget = "17"
+        }
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>(rootProject.name) {
+            from(components["java"])
         }
     }
 }
