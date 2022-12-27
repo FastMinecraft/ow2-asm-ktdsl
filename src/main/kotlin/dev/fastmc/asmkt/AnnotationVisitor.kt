@@ -66,6 +66,10 @@ class AnnotationVisitorBuilder {
                         values!!.add(value)
                     }
 
+                    override fun visitAnnotation(e: String?, descriptor: String?): AnnotationVisitor? {
+                        return annotationVisits[name]?.get(descriptor)?.let { AnnotationVisitorBuilder().apply(it).build() }
+                    }
+
                     override fun visitEnd() {
                         values?.let { arrayVisits[type!!]?.get(name)?.invoke(it) }
                     }
