@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     kotlin("jvm")
     `maven-publish`
@@ -18,6 +20,9 @@ dependencies {
 }
 
 java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
     withSourcesJar()
 }
 
@@ -31,15 +36,16 @@ kotlin {
 }
 
 tasks {
-    compileJava {
+    withType<JavaCompile> {
         options.encoding = "UTF-8"
-        sourceCompatibility = "17"
-        targetCompatibility = "17"
     }
 
-    compileKotlin {
+    withType<KotlinCompile>  {
         kotlinOptions {
             jvmTarget = "17"
+            freeCompilerArgs += listOf(
+                "-Xbackend-threads=0"
+            )
         }
     }
 }
