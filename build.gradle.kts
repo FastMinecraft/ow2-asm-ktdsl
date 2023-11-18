@@ -7,21 +7,22 @@ plugins {
 }
 
 group = "dev.fastmc"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation("it.unimi.dsi:fastutil:8.5.9")
-    implementation("org.ow2.asm:asm-commons:9.4")
-    implementation("org.ow2.asm:asm-tree:9.4")
+    compileOnly("it.unimi.dsi:fastutil:7.1.0")
+    implementation(kotlin("reflect"))
+    api("org.ow2.asm:asm-commons:9.4")
+    api("org.ow2.asm:asm-tree:9.4")
 }
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(8))
     }
     withSourcesJar()
 }
@@ -42,7 +43,7 @@ tasks {
 
     withType<KotlinCompile>  {
         kotlinOptions {
-            jvmTarget = "17"
+            jvmTarget = "1.8"
             freeCompilerArgs += listOf(
                 "-Xbackend-threads=0"
             )
